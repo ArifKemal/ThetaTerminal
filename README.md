@@ -19,6 +19,7 @@ ThetaTerminal is a professional-grade interactive terminal for stock options res
 *   **Quant Insights:**
     *   **Gamma Exposure (GEX):** Visualizes market maker hedging requirements to identify volatility buffers or acceleration zones.
     *   **Max Pain:** Calculates the strike price where the most options value expires worthless.
+    *   **Put/Call Ratios:** Real-time calculation of Volume and Open Interest ratios for sentiment analysis.
     *   **IV Rank & Percentile:** Contextualizes current Implied Volatility against 1-year historical data.
 *   **Strategy Builder:** Interactive modeling of multi-leg strategies with real-time P&L payoff diagrams.
 *   **Unusual Options Activity (UOA):** Detects contracts where daily volume exceeds open interest.

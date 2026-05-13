@@ -30,8 +30,21 @@ def get_ticker_data(ticker_symbol):
         if not current_price:
             hist = ticker.history(period="5d")
             if not hist.empty: current_price = hist['Close'].iloc[-1]
-        return current_price, ticker.options
-    except: return None, None
+        
+        # Get Earnings Date
+        earnings_date = "N/A"
+        try:
+            cal = ticker.calendar
+            if cal is not None and 'Earnings Date' in cal:
+                ed = cal['Earnings Date']
+                if isinstance(ed, list) and len(ed) > 0:
+                    earnings_date = ed[0].strftime('%Y-%m-%d')
+                else:
+                    earnings_date = str(ed)
+        except: pass
+            
+        return current_price, ticker.options, earnings_date
+    except: return None, None, "N/A"
 
 @st.cache_data(ttl=900)
 def get_option_chain(ticker_symbol, expiration):
@@ -85,19 +98,13 @@ st.sidebar.title("📊 ThetaTerminal")
 ticker_input = st.sidebar.text_input("Ticker Symbol", value="TSLA").upper()
 
 if ticker_input:
-    current_price, expirations = get_ticker_data(ticker_input)
+    current_price, expirations, earnings_date = get_ticker_data(ticker_input)
     
     if current_price and expirations:
         selected_exp = st.sidebar.selectbox("Expiration Date", expirations)
         iv_rank, iv_pct = calculate_iv_rank(ticker_input)
         
         st.title(f"{ticker_input} | Market Dashboard")
-        
-        # Metrics Row
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Stock Price", f"${current_price:.2f}")
-        m2.metric("Volatility Rank", f"{iv_rank:.1f}%")
-        m3.metric("Vol Percentile", f"{iv_pct:.1f}%")
         
         # Load and Clean Chains
         calls, puts = get_option_chain(ticker_input, selected_exp)
@@ -109,11 +116,61 @@ if ticker_input:
                 df['openInterest'] = pd.to_numeric(df['openInterest'], errors='coerce').fillna(0)
                 df['impliedVolatility'] = pd.to_numeric(df['impliedVolatility'], errors='coerce').fillna(0)
                 df['lastPrice'] = pd.to_numeric(df['lastPrice'], errors='coerce').fillna(0)
-                # Remove rows with invalid strike prices
                 df.dropna(subset=['strike'], inplace=True)
 
+            # --- Calculate Metrics ---
             max_pain = calculate_max_pain(calls, puts)
-            m4.metric("Max Pain Strike", f"${max_pain:.1f}")
+            
+            # Expected Move Calculation
+            days_to_expiry = (datetime.strptime(selected_exp, '%Y-%m-%d') - datetime.now()).days
+            atm_call = calls.iloc[(calls['strike'] - current_price).abs().argsort()[:1]]
+            atm_iv = atm_call['impliedVolatility'].iloc[0] if not atm_call.empty else 0
+            expected_move = current_price * atm_iv * np.sqrt(max(days_to_expiry, 1) / 365)
+            
+            # Put/Call Ratios
+            total_call_vol = calls['volume'].sum()
+            total_put_vol = puts['volume'].sum()
+            total_call_oi = calls['openInterest'].sum()
+            total_put_oi = puts['openInterest'].sum()
+            pc_vol_ratio = total_put_vol / total_call_vol if total_call_vol > 0 else 0
+            pc_oi_ratio = total_put_oi / total_call_oi if total_call_oi > 0 else 0
+
+            # --- Metrics Display ---
+            row1_col1, row1_col2, row1_col3, row1_col4 = st.columns(4)
+            row1_col1.metric("Stock Price", f"${current_price:.2f}")
+            row1_col2.metric("Expected Move", f"±${expected_move:.2f}")
+            row1_col3.metric("Max Pain Strike", f"${max_pain:.1f}")
+            row1_col4.metric("Next Earnings", earnings_date)
+
+            st.write("---")
+            
+            row2_col1, row2_col2, row2_col3, row2_col4 = st.columns(4)
+            row2_col1.metric("Volatility Rank", f"{iv_rank:.1f}%")
+            row2_col2.metric("Vol Percentile", f"{iv_pct:.1f}%")
+            row2_col3.metric("P/C Vol Ratio", f"{pc_vol_ratio:.2f}")
+            row2_col4.metric("P/C OI Ratio", f"{pc_oi_ratio:.2f}")
+
+            # Visual Bars
+            def create_ratio_bar(put_val, call_val):
+                total = put_val + call_val
+                if total == 0: return ""
+                put_pct = (put_val / total) * 100
+                call_pct = (call_val / total) * 100
+                return f"""
+                    <div style="width: 100%; background-color: #30363d; border-radius: 4px; height: 8px; display: flex; overflow: hidden; margin-top: 10px;">
+                        <div style="width: {put_pct}%; background-color: #ff4b4b; height: 100%;"></div>
+                        <div style="width: {call_pct}%; background-color: #00ffcc; height: 100%;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-top: 4px; color: #8b949e;">
+                        <span>P: {put_pct:.0f}%</span>
+                        <span>C: {call_pct:.0f}%</span>
+                    </div>
+                """
+
+            with row2_col3:
+                st.markdown(create_ratio_bar(total_put_vol, total_call_vol), unsafe_allow_html=True)
+            with row2_col4:
+                st.markdown(create_ratio_bar(total_put_oi, total_call_oi), unsafe_allow_html=True)
 
             # Tabs
             tab_chain, tab_structure, tab_uoa, tab_surface, tab_builder = st.tabs([
@@ -153,6 +210,10 @@ if ticker_input:
 
                     fig_oi.add_vline(x=current_price, line_dash="dash", line_color="orange", annotation_text="Spot")
                     fig_oi.add_vline(x=max_pain, line_dash="dot", line_color="white", annotation_text="Max Pain")
+                    
+                    # Expected Move Bounds
+                    fig_oi.add_vline(x=current_price + expected_move, line_dash="dot", line_color="#ff4b4b", annotation_text="+EM")
+                    fig_oi.add_vline(x=current_price - expected_move, line_dash="dot", line_color="#00ffcc", annotation_text="-EM")
 
                     fig_oi.update_layout(
                         barmode='relative',
