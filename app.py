@@ -42,9 +42,17 @@ def get_ticker_data(ticker_symbol):
                 else:
                     earnings_date = str(ed)
         except: pass
+        
+        # Company Info
+        company_info = {
+            "name": info.get("longName", ticker_symbol),
+            "sector": info.get("sector", "N/A"),
+            "industry": info.get("industry", "N/A"),
+            "summary": info.get("longBusinessSummary", "No summary available.")
+        }
             
-        return current_price, ticker.options, earnings_date
-    except: return None, None, "N/A"
+        return current_price, ticker.options, earnings_date, company_info
+    except: return None, None, "N/A", {}
 
 @st.cache_data(ttl=900)
 def get_option_chain(ticker_symbol, expiration):
@@ -98,10 +106,21 @@ st.sidebar.title("📊 ThetaTerminal")
 ticker_input = st.sidebar.text_input("Ticker Symbol", value="TSLA").upper()
 
 if ticker_input:
-    current_price, expirations, earnings_date = get_ticker_data(ticker_input)
+    current_price, expirations, earnings_date, company_info = get_ticker_data(ticker_input)
     
     if current_price and expirations:
         selected_exp = st.sidebar.selectbox("Expiration Date", expirations)
+        
+        # Company Profile Sidebar Section
+        if company_info:
+            st.sidebar.write("---")
+            st.sidebar.subheader("🏢 Company Profile")
+            st.sidebar.markdown(f"**Name:** {company_info['name']}")
+            st.sidebar.markdown(f"**Sector:** {company_info['sector']}")
+            st.sidebar.markdown(f"**Industry:** {company_info['industry']}")
+            with st.sidebar.expander("About Company"):
+                st.info(company_info['summary'])
+
         iv_rank, iv_pct = calculate_iv_rank(ticker_input)
         
         st.title(f"{ticker_input} | Market Dashboard")
