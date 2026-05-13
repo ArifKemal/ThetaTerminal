@@ -80,6 +80,16 @@ def calculate_iv_rank(ticker_symbol):
         return rank, pct
     except: return 0, 0
 
+@st.cache_data(ttl=3600)
+def get_analyst_data(ticker_symbol):
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        recs = ticker.recommendations
+        ud = ticker.upgrades_downgrades
+        news = ticker.news
+        return recs, ud, news
+    except: return None, None, None
+
 @st.cache_data(ttl=900)
 def get_full_chain_for_surface(ticker_symbol, expirations):
     ticker = yf.Ticker(ticker_symbol)
@@ -201,8 +211,8 @@ if ticker_input:
                 st.markdown(create_ratio_bar(total_put_oi, total_call_oi), unsafe_allow_html=True)
 
             # Tabs
-            tab_chain, tab_structure, tab_uoa, tab_surface, tab_builder = st.tabs([
-                "📋 Option Chain", "🧠 Market Structure", "🚨 Unusual Activity", "🌊 Vol Surface", "🛠️ Strategy Builder"
+            tab_chain, tab_structure, tab_uoa, tab_surface, tab_analyst, tab_builder = st.tabs([
+                "📋 Option Chain", "🧠 Market Structure", "🚨 Unusual Activity", "🌊 Vol Surface", "🔭 Analyst Insights", "🛠️ Strategy Builder"
             ])
 
             with tab_chain:
@@ -284,6 +294,52 @@ if ticker_input:
                         st.plotly_chart(fig_surf, use_container_width=True)
                     else:
                         st.warning("Insufficient data for 3D Surface.")
+
+            with tab_analyst:
+                recs, ud, news = get_analyst_data(ticker_input)
+                
+                col_a1, col_a2 = st.columns([1, 2])
+                
+                with col_a1:
+                    st.subheader("Consensus Ratings")
+                    if recs is not None and not recs.empty:
+                        # Display latest recommendation (period '0m')
+                        latest_rec = recs.iloc[0]
+                        fig_rec = go.Figure(data=[go.Pie(
+                            labels=['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell'],
+                            values=[latest_rec['strongBuy'], latest_rec['buy'], latest_rec['hold'], latest_rec['sell'], latest_rec['strongSell']],
+                            hole=.3,
+                            marker_colors=['#00c853', '#64dd17', '#ffeb3b', '#ff9800', '#f44336']
+                        )])
+                        fig_rec.update_layout(showlegend=True, height=350, margin=dict(l=0, r=0, b=0, t=0))
+                        st.plotly_chart(fig_rec, use_container_width=True)
+                    else:
+                        st.info("No recommendation data available.")
+
+                with col_a2:
+                    st.subheader("Recent Upgrades/Downgrades")
+                    if ud is not None and not ud.empty:
+                        # Sort by date (index) and show top 10
+                        st.dataframe(ud.sort_index(ascending=False).head(10), use_container_width=True)
+                    else:
+                        st.info("No upgrades/downgrades data available.")
+
+                st.write("---")
+                st.subheader("Latest Market News")
+                if news:
+                    for item in news[:5]:
+                        content = item.get('content', {})
+                        title = content.get('title', 'No Title')
+                        summary = content.get('summary', '')
+                        url = content.get('canonicalUrl', {}).get('url', '#')
+                        pub_date = content.get('pubDate', '')
+                        
+                        st.markdown(f"### [{title}]({url})")
+                        st.caption(f"Published: {pub_date}")
+                        st.write(summary)
+                        st.write("---")
+                else:
+                    st.info("No news available for this ticker.")
 
             with tab_builder:
                 if 'legs' not in st.session_state: st.session_state.legs = []
