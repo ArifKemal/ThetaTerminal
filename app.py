@@ -122,12 +122,13 @@ if ticker_input:
             st.sidebar.markdown(f"**Name:** {company_info['name']}")
             st.sidebar.markdown(f"**Sector:** {company_info['sector']}")
             st.sidebar.markdown(f"**Industry:** {company_info['industry']}")
-            with st.sidebar.expander("📊 Financial Multipliers"):
-                st.markdown(f"**Trailing P/E:** {company_info['trailing_pe']}")
-                st.markdown(f"**Forward P/E:** {company_info['forward_pe']}")
-                st.markdown(f"**PEG Ratio:** {company_info['peg_ratio']}")
-                st.markdown(f"**Price/Book:** {company_info['p_b']}")
-                st.markdown(f"**EV/EBITDA:** {company_info['ev_ebitda']}")
+            st.sidebar.write("---")
+            st.sidebar.subheader("📊 Financial Multipliers")
+            st.sidebar.markdown(f"**Trailing P/E:** {company_info['trailing_pe']}")
+            st.sidebar.markdown(f"**Forward P/E:** {company_info['forward_pe']}")
+            st.sidebar.markdown(f"**PEG Ratio:** {company_info['peg_ratio']}")
+            st.sidebar.markdown(f"**Price/Book:** {company_info['p_b']}")
+            st.sidebar.markdown(f"**EV/EBITDA:** {company_info['ev_ebitda']}")
 
         iv_rank, iv_pct = calculate_iv_rank(ticker_input)
         
