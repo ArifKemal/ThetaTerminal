@@ -3,6 +3,7 @@ yfinance
 pandas
 numpy
 plotly
+matplotlib
 py_vollib_vectorized
 # py_vollib can be tricky on some systems due to its dependencies (swig, etc.)
 # py_vollib_vectorized is often easier and faster for pandas integration.
