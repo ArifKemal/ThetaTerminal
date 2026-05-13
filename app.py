@@ -48,7 +48,11 @@ def get_ticker_data(ticker_symbol):
             "name": info.get("longName", ticker_symbol),
             "sector": info.get("sector", "N/A"),
             "industry": info.get("industry", "N/A"),
-            "summary": info.get("longBusinessSummary", "No summary available.")
+            "trailing_pe": info.get("trailingPE", "N/A"),
+            "forward_pe": info.get("forwardPE", "N/A"),
+            "peg_ratio": info.get("pegRatio", "N/A"),
+            "p_b": info.get("priceToBook", "N/A"),
+            "ev_ebitda": info.get("enterpriseToEbitda", "N/A")
         }
             
         return current_price, ticker.options, earnings_date, company_info
@@ -118,8 +122,12 @@ if ticker_input:
             st.sidebar.markdown(f"**Name:** {company_info['name']}")
             st.sidebar.markdown(f"**Sector:** {company_info['sector']}")
             st.sidebar.markdown(f"**Industry:** {company_info['industry']}")
-            with st.sidebar.expander("About Company"):
-                st.info(company_info['summary'])
+            with st.sidebar.expander("📊 Financial Multipliers"):
+                st.markdown(f"**Trailing P/E:** {company_info['trailing_pe']}")
+                st.markdown(f"**Forward P/E:** {company_info['forward_pe']}")
+                st.markdown(f"**PEG Ratio:** {company_info['peg_ratio']}")
+                st.markdown(f"**Price/Book:** {company_info['p_b']}")
+                st.markdown(f"**EV/EBITDA:** {company_info['ev_ebitda']}")
 
         iv_rank, iv_pct = calculate_iv_rank(ticker_input)
         
