@@ -157,9 +157,9 @@ if ticker_input:
                 put_pct = (put_val / total) * 100
                 call_pct = (call_val / total) * 100
                 return f"""
-                    <div style="width: 100%; background-color: #30363d; border-radius: 4px; height: 8px; display: flex; overflow: hidden; margin-top: 10px;">
-                        <div style="width: {put_pct}%; background-color: #A50F15; height: 100%;"></div>
-                        <div style="width: {call_pct}%; background-color: #10652B; height: 100%;"></div>
+                    <div style="width: 100%; background-color: #22262B; border-radius: 4px; height: 8px; display: flex; overflow: hidden; margin-top: 10px;">
+                        <div style="width: {put_pct}%; background-color: #E53935; height: 100%;"></div>
+                        <div style="width: {call_pct}%; background-color: #43A047; height: 100%;"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 10px; margin-top: 4px; color: #8b949e;">
                         <span>P: {put_pct:.0f}%</span>
