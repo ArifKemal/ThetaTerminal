@@ -2,8 +2,6 @@
 
 ThetaTerminal is a professional-grade interactive terminal for stock options research, volatility analysis, and market structure visualization. It focuses on detecting options pricing anomalies and institutional positioning.
 
-![ThetaTerminal Screenshot](Screenshot_1.png)
-
 ## Project Overview
 
 *   **Purpose:** Provide deep-dive options analytics beyond standard data viewers.
