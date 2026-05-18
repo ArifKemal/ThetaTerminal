@@ -25,8 +25,21 @@ st.markdown("""
 def get_ticker_data(ticker_symbol):
     try:
         ticker = yf.Ticker(ticker_symbol)
-        info = ticker.info
-        current_price = info.get('regularMarketPrice') or info.get('currentPrice')
+        
+        # Try fast_info first for price (more reliable)
+        current_price = None
+        try:
+            current_price = ticker.fast_info.last_price
+        except: pass
+        
+        info = {}
+        try:
+            info = ticker.info
+        except: pass
+        
+        if not current_price:
+            current_price = info.get('regularMarketPrice') or info.get('currentPrice')
+            
         if not current_price:
             hist = ticker.history(period="5d")
             if not hist.empty: current_price = hist['Close'].iloc[-1]
@@ -35,17 +48,23 @@ def get_ticker_data(ticker_symbol):
         earnings_date = "N/A"
         try:
             cal = ticker.calendar
-            if cal is not None and 'Earnings Date' in cal:
+            if isinstance(cal, dict) and 'Earnings Date' in cal:
                 ed = cal['Earnings Date']
                 if isinstance(ed, list) and len(ed) > 0:
                     earnings_date = ed[0].strftime('%Y-%m-%d')
                 else:
                     earnings_date = str(ed)
+            elif isinstance(cal, pd.DataFrame) and not cal.empty:
+                # Some versions return a DataFrame
+                if 'Earnings Date' in cal.index:
+                    earnings_date = str(cal.loc['Earnings Date'].iloc[0])
+                elif 'Earnings Date' in cal.columns:
+                    earnings_date = str(cal['Earnings Date'].iloc[0])
         except: pass
         
         # Company Info
         company_info = {
-            "name": info.get("longName", ticker_symbol),
+            "name": info.get("longName") or info.get("shortName") or ticker_symbol,
             "sector": info.get("sector", "N/A"),
             "industry": info.get("industry", "N/A"),
             "trailing_pe": info.get("trailingPE", "N/A"),
@@ -56,7 +75,9 @@ def get_ticker_data(ticker_symbol):
         }
             
         return current_price, ticker.options, earnings_date, company_info
-    except: return None, None, "N/A", {}
+    except Exception as e:
+        st.error(f"Error fetching data for {ticker_symbol}: {e}")
+        return None, None, "N/A", {}
 
 @st.cache_data(ttl=900)
 def get_option_chain(ticker_symbol, expiration):
@@ -331,7 +352,8 @@ if ticker_input:
                         content = item.get('content', {})
                         title = content.get('title', 'No Title')
                         summary = content.get('summary', '')
-                        url = content.get('canonicalUrl', {}).get('url', '#')
+                        # URL is often at the top level of the item or within canonicalUrl sibling
+                        url = item.get('canonicalUrl', {}).get('url') or item.get('clickThroughUrl', {}).get('url') or "#"
                         pub_date = content.get('pubDate', '')
                         
                         st.markdown(f"### [{title}]({url})")
