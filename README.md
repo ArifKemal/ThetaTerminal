@@ -1,6 +1,6 @@
 # ThetaTerminal | Advanced Quant Suite
 
-🚀 **Canlı Uygulama:** [https://arifkemal-thetaterminal-app-myq5xs.streamlit.app/](https://arifkemal-thetaterminal-app-myq5xs.streamlit.app/)
+ **Canlı Uygulama:** [https://arifkemal-thetaterminal-app-myq5xs.streamlit.app/](https://arifkemal-thetaterminal-app-myq5xs.streamlit.app/)
 
 ThetaTerminal is a professional-grade interactive terminal for stock options research, volatility analysis, and market structure visualization. It focuses on detecting options pricing anomalies and institutional positioning.
 
