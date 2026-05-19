@@ -4,6 +4,18 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from datetime import datetime
+import requests
+import requests_cache
+
+# --- Session & Cache Configuration ---
+# Use a session with a custom user agent to avoid being blocked
+@st.cache_resource
+def get_session():
+    session = requests_cache.CachedSession('yfinance.cache')
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    })
+    return session
 
 # --- Page Configuration ---
 st.set_page_config(
